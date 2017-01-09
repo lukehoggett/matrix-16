@@ -1,10 +1,8 @@
 #include "main.h"
 
-unsigned char whiteBalanceValue[3] = { 20, 63, 63 };
+unsigned char whiteBalanceValue[3] = {20, 63, 63};
 
-void setWhiteBalance() {
-  Colorduino.SetWhiteBal(whiteBalanceValue);
-}
+void setWhiteBalance() { Colorduino.SetWhiteBal(whiteBalanceValue); }
 
 void drawDots() {
   for (unsigned char x = 0; x < ColorduinoScreenWidth; x++) {
@@ -46,7 +44,8 @@ void listener() {
     if (Wire.read() != START_OF_DATA) {
       // else handle error by reading remaining data until end of data marker
       // (if available)
-      while (Wire.available() > 0 && Wire.read() != END_OF_DATA) {}
+      while (Wire.available() > 0 && Wire.read() != END_OF_DATA) {
+      }
       return;
     }
 
@@ -89,7 +88,8 @@ void listener() {
     // read end of data marker
     if (Wire.read() == END_OF_DATA) {
       // if colour is blue, then update display
-      if (c == 2) Colorduino.FlipPage();
+      if (c == 2)
+        Colorduino.FlipPage();
     }
   }
 }

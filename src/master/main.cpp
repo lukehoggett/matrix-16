@@ -9,7 +9,7 @@
    libraries to patch:
    Wire:
     utility/twi.h: #define TWI_FREQ 400000L (was 100000L)
-   #define TWI_BUFFER_LENGTH 70 (was 32)
+ #define TWI_BUFFER_LENGTH 70 (was 32)
     wire.h: #define BUFFER_LENGTH 70 (was 32)
 
    This DEMO is free software; you can redistribute it and/or
@@ -28,45 +28,35 @@
 
 #include "main.h"
 
-
 unsigned char plasma[SCREENSIZEX][SCREENSIZEY];
 long paletteShift;
-
 
 void setup() {
   Wire.begin(1);  // join i2c bus (address optional for master)
   // Serial.begin(115200);
-  plasma_setup(); // plasma setup
+  plasmaSetup();  // plasma setup
 }
 
+void loop() { plasmaMorph(); }
 
-void loop() {
-  plasmaMorph();
-}
-
-
-
-//update display buffer using x,y,r,g,b format
+// update display buffer using x,y,r,g,b format
 void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
-  uint8_t p = (y * 8) + x; // convert from x,y to pixel number in array
+  uint8_t p = (y * 8) + x;  // convert from x,y to pixel number in array
 
   display_byte[0][p] = r;
   display_byte[1][p] = g;
   display_byte[2][p] = b;
 }
 
-
-//send display buffer to display
-void update_display(uint8_t addr) {
-  BlinkM_sendBuffer(addr, 0, display_byte[0]);
-  BlinkM_sendBuffer(addr, 1, display_byte[1]);
-  BlinkM_sendBuffer(addr, 2, display_byte[2]);
+// send display buffer to display
+void updateDisplay(uint8_t addr) {
+  sendBuffer(addr, 0, display_byte[0]);
+  sendBuffer(addr, 1, display_byte[1]);
+  sendBuffer(addr, 2, display_byte[2]);
 }
 
-
-
-//send data via I2C to a client
-static uint8_t BlinkM_sendBuffer(uint8_t addr, uint8_t col, uint8_t *disp_data) {
+// send data via I2C to a client
+static uint8_t sendBuffer(uint8_t addr, uint8_t col, uint8_t *disp_data) {
   // Serial.print("SendingBuffer => ");
   // Serial.print(" addr: ");
   // Serial.print(addr);
@@ -86,14 +76,12 @@ static uint8_t BlinkM_sendBuffer(uint8_t addr, uint8_t col, uint8_t *disp_data) 
   return Wire.endTransmission();
 }
 
-
-
-//plasma convert
-//Converts an HSV color to RGB color
+// plasma convert
+// Converts an HSV color to RGB color
 void HSVtoRGB(void *vRGB, void *vHSV) {
-  float r, g, b, h, s, v; // this function works with floats between 0 and 1
+  float r, g, b, h, s, v;  // this function works with floats between 0 and 1
   float f, p, q, t;
-  int   i;
+  int i;
   ColorRGB *colorRGB = (ColorRGB *)vRGB;
   ColorHSV *colorHSV = (ColorHSV *)vHSV;
 
@@ -109,33 +97,58 @@ void HSVtoRGB(void *vRGB, void *vHSV) {
   }
 
   // if saturation > 0, more complex calculations are needed
-  else
-  {
-    h *= 6.0;             // to bring hue to a number between 0 and 6, better
+  else {
+    h *= 6.0;             // to bring hue to a number between 0 and 6,
+                          // better
                           // for the calculations
-    i  = (int)(floor(h)); // e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999
+    i = (int)(floor(h));  // e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999
                           // becomes 4
-    f  = h - i;           // the fractional part of h
+    f = h - i;            // the fractional part of h
 
     p = (float)(v * (1.0 - s));
     q = (float)(v * (1.0 - (s * f)));
     t = (float)(v * (1.0 - (s * (1.0 - f))));
 
-    switch (i)
-    {
-    case 0: r = v; g = t; b = p; break;
+    switch (i) {
+      case 0:
+        r = v;
+        g = t;
+        b = p;
+        break;
 
-    case 1: r = q; g = v; b = p; break;
+      case 1:
+        r = q;
+        g = v;
+        b = p;
+        break;
 
-    case 2: r = p; g = v; b = t; break;
+      case 2:
+        r = p;
+        g = v;
+        b = t;
+        break;
 
-    case 3: r = p; g = q; b = v; break;
+      case 3:
+        r = p;
+        g = q;
+        b = v;
+        break;
 
-    case 4: r = t; g = p; b = v; break;
+      case 4:
+        r = t;
+        g = p;
+        b = v;
+        break;
 
-    case 5: r = v; g = p; b = q; break;
+      case 5:
+        r = v;
+        g = p;
+        b = q;
+        break;
 
-    default: r = g = b = 0; break;
+      default:
+        r = g = b = 0;
+        break;
     }
   }
   colorRGB->r = (int)(r * 255.0);
@@ -143,34 +156,32 @@ void HSVtoRGB(void *vRGB, void *vHSV) {
   colorRGB->b = (int)(b * 255.0);
 }
 
-
-
 unsigned int RGBtoINT(void *vRGB) {
   ColorRGB *colorRGB = (ColorRGB *)vRGB;
 
-  return (((unsigned long int)colorRGB->r) <<
-          16) +
-         (((unsigned long int)colorRGB->g) << 8) + (unsigned long int)colorRGB->b;
+  return (((unsigned long int)colorRGB->r) << 16) +
+         (((unsigned long int)colorRGB->g) << 8) +
+         (unsigned long int)colorRGB->b;
 }
-
-
 
 float dist(float a, float b, float c, float d) {
   return sqrt((c - a) * (c - a) + (d - b) * (d - b));
 }
 
-
-
-void plasmaMorph() {
+void plasmaMorph() 
+{
   unsigned char x, y;
   float value;
   ColorRGB colorRGB;
   ColorHSV colorHSV;
 
-  for(x = 0; x < SCREENSIZEX; x++) {
-    for(y = 0; y < SCREENSIZEY; y++) {
-      value = sin(dist(x + paletteShift, y, 128.0, 128.0) / 8.0) + sin(dist(x, y, 64.0, 64.0) / 8.0) + sin(dist(x, y + paletteShift / 7, 192.0, 64) / 7.0) + sin(dist(x, y, 192.0, 100.0) / 8.0);
-      colorHSV.h = (unsigned char)((value) * 128) & 0xff;
+  for (x = 0; x < SCREENSIZEX; x++) {
+    for (y = 0; y < SCREENSIZEY; y++) {
+      value = sin(dist(x + paletteShift, y, 128.0, 128.0) / 8.0) +
+              sin(dist(x, y, 64.0, 64.0) / 8.0) +
+              sin(dist(x, y + paletteShift / 7, 192.0, 64) / 7.0) +
+              sin(dist(x, y, 192.0, 100.0) / 8.0);
+      colorHSV.h = (unsigned char)((value)*128) & 0xff;
       colorHSV.s = 255;
       colorHSV.v = 255;
       HSVtoRGB(&colorRGB, &colorHSV);
@@ -180,23 +191,21 @@ void plasmaMorph() {
   }
   paletteShift++;
 
-  update_display(DEST_I2C_ADDR);
+  updateDisplay(DEST_I2C_ADDR);
 }
 
-//plasma setup - start with morphing plasma, but allow going to color cycling if desired.
-void plasma_setup() {
+// plasma setup - start with morphing plasma, but allow going to color cycling
+// if desired.
+void plasmaSetup() {
   paletteShift = 128000;
   unsigned char bcolor;
 
   for (unsigned char x = 0; x < SCREENSIZEX; x++)
-    for (unsigned char y = 0; y < SCREENSIZEY; y++)
-    {
+    for (unsigned char y = 0; y < SCREENSIZEY; y++) {
       // the plasma buffer is a sum of sines
-      bcolor = (unsigned char)
-               (
-        128.0 + (128.0 * sin(x * 8.0 / 16.0))
-        + 128.0 + (128.0 * sin(y * 8.0 / 16.0))
-               ) / 2;
+      bcolor = (unsigned char)(128.0 + (128.0 * sin(x * 8.0 / 16.0)) + 128.0 +
+                               (128.0 * sin(y * 8.0 / 16.0))) /
+               2;
       plasma[x][y] = bcolor;
     }
 }
