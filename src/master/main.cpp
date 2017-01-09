@@ -43,16 +43,16 @@ void loop() { plasmaMorph(); }
 void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
   uint8_t p = (y * 8) + x;  // convert from x,y to pixel number in array
 
-  display_byte[0][p] = r;
-  display_byte[1][p] = g;
-  display_byte[2][p] = b;
+  displayByte[0][p] = r;
+  displayByte[1][p] = g;
+  displayByte[2][p] = b;
 }
 
 // send display buffer to display
 void updateDisplay(uint8_t addr) {
-  sendBuffer(addr, 0, display_byte[0]);
-  sendBuffer(addr, 1, display_byte[1]);
-  sendBuffer(addr, 2, display_byte[2]);
+  sendBuffer(addr, 0, displayByte[0]);
+  sendBuffer(addr, 1, displayByte[1]);
+  sendBuffer(addr, 2, displayByte[2]);
 }
 
 // send data via I2C to a client
@@ -168,8 +168,7 @@ float dist(float a, float b, float c, float d) {
   return sqrt((c - a) * (c - a) + (d - b) * (d - b));
 }
 
-void plasmaMorph() 
-{
+void plasmaMorph() {
   unsigned char x, y;
   float value;
   ColorRGB colorRGB;

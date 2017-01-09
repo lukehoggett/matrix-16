@@ -17,7 +17,7 @@
 #define SCREENSIZEX 8  // num of LEDs across
 #define SCREENSIZEY 16 // num of LEDs down
 
-uint8_t display_byte[3][64]; // display array - 64 bytes x 3 colours
+uint8_t displayByte[3][64]; // display array - 64 bytes x 3 colours
 
 // setup for plasma
 typedef struct {
