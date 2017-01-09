@@ -21,17 +21,17 @@ uint8_t display_byte[3][64];        // display array - 64 bytes x 3 colours
 // setup for plasma
 typedef struct
 {
-        unsigned char r;
-        unsigned char g;
-        unsigned char b;
+  unsigned char r;
+  unsigned char g;
+  unsigned char b;
 } ColorRGB;
 
 // a color with 3 components: h, s and v
 typedef struct
 {
-        unsigned char h;
-        unsigned char s;
-        unsigned char v;
+  unsigned char h;
+  unsigned char s;
+  unsigned char v;
 } ColorHSV;
 
 void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b);
