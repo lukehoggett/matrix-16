@@ -32,16 +32,16 @@ unsigned char plasma[SCREENSIZEX][SCREENSIZEY];
 long paletteShift;
 
 void setup() {
-  Wire.begin(1);  // join i2c bus (address optional for master)
+  Wire.begin(1); // join i2c bus (address optional for master)
   // Serial.begin(115200);
-  plasmaSetup();  // plasma setup
+  plasmaSetup(); // plasma setup
 }
 
 void loop() { plasmaMorph(); }
 
 // update display buffer using x,y,r,g,b format
 void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
-  uint8_t p = (y * 8) + x;  // convert from x,y to pixel number in array
+  uint8_t p = (y * 8) + x; // convert from x,y to pixel number in array
 
   displayByte[0][p] = r;
   displayByte[1][p] = g;
@@ -79,7 +79,7 @@ static uint8_t sendBuffer(uint8_t addr, uint8_t col, uint8_t *disp_data) {
 // plasma convert
 // Converts an HSV color to RGB color
 void HSVtoRGB(void *vRGB, void *vHSV) {
-  float r, g, b, h, s, v;  // this function works with floats between 0 and 1
+  float r, g, b, h, s, v; // this function works with floats between 0 and 1
   float f, p, q, t;
   int i;
   ColorRGB *colorRGB = (ColorRGB *)vRGB;
@@ -98,57 +98,57 @@ void HSVtoRGB(void *vRGB, void *vHSV) {
 
   // if saturation > 0, more complex calculations are needed
   else {
-    h *= 6.0;             // to bring hue to a number between 0 and 6,
-                          // better
-                          // for the calculations
-    i = (int)(floor(h));  // e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999
-                          // becomes 4
-    f = h - i;            // the fractional part of h
+    h *= 6.0;            // to bring hue to a number between 0 and 6,
+                         // better
+                         // for the calculations
+    i = (int)(floor(h)); // e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999
+                         // becomes 4
+    f = h - i;           // the fractional part of h
 
     p = (float)(v * (1.0 - s));
     q = (float)(v * (1.0 - (s * f)));
     t = (float)(v * (1.0 - (s * (1.0 - f))));
 
     switch (i) {
-      case 0:
-        r = v;
-        g = t;
-        b = p;
-        break;
+    case 0:
+      r = v;
+      g = t;
+      b = p;
+      break;
 
-      case 1:
-        r = q;
-        g = v;
-        b = p;
-        break;
+    case 1:
+      r = q;
+      g = v;
+      b = p;
+      break;
 
-      case 2:
-        r = p;
-        g = v;
-        b = t;
-        break;
+    case 2:
+      r = p;
+      g = v;
+      b = t;
+      break;
 
-      case 3:
-        r = p;
-        g = q;
-        b = v;
-        break;
+    case 3:
+      r = p;
+      g = q;
+      b = v;
+      break;
 
-      case 4:
-        r = t;
-        g = p;
-        b = v;
-        break;
+    case 4:
+      r = t;
+      g = p;
+      b = v;
+      break;
 
-      case 5:
-        r = v;
-        g = p;
-        b = q;
-        break;
+    case 5:
+      r = v;
+      g = p;
+      b = q;
+      break;
 
-      default:
-        r = g = b = 0;
-        break;
+    default:
+      r = g = b = 0;
+      break;
     }
   }
   colorRGB->r = (int)(r * 255.0);
