@@ -28,46 +28,38 @@
 
 #include "main.h"
 
-unsigned char plasma[SCREENSIZEX][SCREENSIZEY];
+unsigned char plasma[SCREENSIZE_X][SCREENSIZE_Y];
 long paletteShift;
 
 void setup() {
   Wire.begin(1); // join i2c bus (address optional for master)
   // Serial.begin(115200);
-  plasmaSetup(); // plasma setup
+  // plasmaSetup(); // plasma setup
 }
 
-void loop() { plasmaMorph(); }
+void loop() { generateData(); }
 
 // update display buffer using x,y,r,g,b format
-void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
+void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t addr) {
   uint8_t p = (y * 8) + x; // convert from x,y to pixel number in array
 
-  displayByte[0][p] = r;
-  displayByte[1][p] = g;
-  displayByte[2][p] = b;
+  displayByte[0][addr][p] = r;
+  displayByte[1][addr][p] = g;
+  displayByte[2][addr][p] = b;
 }
 
 // send display buffer to display
-void updateDisplay(uint8_t addr) {
-  sendBuffer(addr, 0, displayByte[0]);
-  sendBuffer(addr, 1, displayByte[1]);
-  sendBuffer(addr, 2, displayByte[2]);
+void updateDisplay() {
+  uint8_t matrixAddress;
+  for (matrixAddress = ADDR_TOP_LEFT; matrixAddress <= ADDR_BOTTOM_RIGHT; matrixAddress++) {
+    sendBuffer(matrixAddress, 0, displayByte[0][matrixAddress]);
+    sendBuffer(matrixAddress, 1, displayByte[1][matrixAddress]);
+    sendBuffer(matrixAddress, 2, displayByte[2][matrixAddress]);
+  }
 }
 
 // send data via I2C to a client
 static uint8_t sendBuffer(uint8_t addr, uint8_t col, uint8_t *disp_data) {
-  // Serial.print("SendingBuffer => ");
-  // Serial.print(" addr: ");
-  // Serial.print(addr);
-  // Serial.print(" col: ");
-  // Serial.print(col);
-  // Serial.print(" disp_data: ");
-  // for(int i = 0; i < sizeof(disp_data); i++)
-  // {
-  //         Serial.print(disp_data[i], BIN);
-  // }
-  // Serial.println(" |");
   Wire.beginTransmission(addr);
   Wire.write(START_OF_DATA);
   Wire.write(col);
@@ -168,43 +160,81 @@ float dist(float a, float b, float c, float d) {
   return sqrt((c - a) * (c - a) + (d - b) * (d - b));
 }
 
-void plasmaMorph() {
-  unsigned char x, y;
-  float value;
+void generateData() {
+  uint8_t x, y, xRel, yRel;
   ColorRGB colorRGB;
-  ColorHSV colorHSV;
+  uint8_t addr;
 
-  for (x = 0; x < SCREENSIZEX; x++) {
-    for (y = 0; y < SCREENSIZEY; y++) {
-      value = sin(dist(x + paletteShift, y, 128.0, 128.0) / 8.0) +
-              sin(dist(x, y, 64.0, 64.0) / 8.0) +
-              sin(dist(x, y + paletteShift / 7, 192.0, 64) / 7.0) +
-              sin(dist(x, y, 192.0, 100.0) / 8.0);
-      colorHSV.h = (unsigned char)((value)*128) & 0xff;
-      colorHSV.s = 255;
-      colorHSV.v = 255;
-      HSVtoRGB(&colorRGB, &colorHSV);
-
-      display(x, y, colorRGB.r, colorRGB.g, colorRGB.b);
+  for (x = 0; x < SCREENSIZE_X; x++) {
+    for (y = 0; y < SCREENSIZE_Y; y++) {
+      // @TODO: can we replace this with a callback or someting to allow us to change the algorithm
+      colorRGB = getValue(x, y, colorRGB);
+      
+      // dtermine which address we wish to send data to
+      if (x < MATRIX_X) {
+        if (y < MATRIX_Y) {
+          // top left
+          // std::cout << " top left ";
+          addr = ADDR_TOP_LEFT;
+          xRel = x;
+          yRel = y;
+        } else {
+          // top left
+          // std::cout << " top right ";
+          addr = ADDR_TOP_RIGHT;
+          xRel = x;
+          yRel = y - MATRIX_Y;
+        }
+      } else {
+        if (y < MATRIX_Y) {
+          // top left
+          // std::cout << " bottom left ";
+          addr = ADDR_BOTTOM_LEFT;
+          xRel = x - MATRIX_X;
+          yRel = y;
+        } else {
+          // top left
+          // std::cout << " bottom right ";
+          addr = ADDR_BOTTOM_RIGHT;
+          xRel = x - MATRIX_X;
+          yRel = y - MATRIX_Y;
+        }
+      }
+      display(xRel, yRel, colorRGB.r, colorRGB.g, colorRGB.b, addr);
     }
   }
   paletteShift++;
 
-  updateDisplay(DEST_I2C_ADDR);
+  updateDisplay();
+}
+
+ColorRGB getValue(uint8_t x, uint8_t y, ColorRGB colorRGB) {
+  ColorHSV colorHSV;
+  float value;
+  value = sin(dist(x + paletteShift, y, 128.0, 128.0) / 8.0) +
+          sin(dist(x, y, 64.0, 64.0) / 8.0) +
+          sin(dist(x, y + paletteShift / 7, 192.0, 64) / 7.0) +
+          sin(dist(x, y, 192.0, 100.0) / 8.0);
+  colorHSV.h = (unsigned char)((value)*128) & 0xff;
+  colorHSV.s = 255;
+  colorHSV.v = 255;
+  HSVtoRGB(&colorRGB, &colorHSV);
+  
+  return colorRGB;
 }
 
 // plasma setup - start with morphing plasma, but allow going to color cycling
 // if desired.
-void plasmaSetup() {
-  paletteShift = 128000;
-  unsigned char bcolor;
-
-  for (unsigned char x = 0; x < SCREENSIZEX; x++)
-    for (unsigned char y = 0; y < SCREENSIZEY; y++) {
-      // the plasma buffer is a sum of sines
-      bcolor = (unsigned char)(128.0 + (128.0 * sin(x * 8.0 / 16.0)) + 128.0 +
-                               (128.0 * sin(y * 8.0 / 16.0))) /
-               2;
-      plasma[x][y] = bcolor;
-    }
-}
+// void plasmaSetup() {
+//   paletteShift = 128000;
+//   unsigned char bcolor;
+// 
+//   for (unsigned char x = 0; x < SCREENSIZE_X; x++)
+//     for (unsigned char y = 0; y < SCREENSIZE_Y; y++) {
+//       // the plasma buffer is a sum of sines
+//       bcolor = (unsigned char)(128.0 + (128.0 * sin(x * 8.0 / 16.0)) + 128.0 +
+//                                (128.0 * sin(y * 8.0 / 16.0))) /
+//                2;
+//       plasma[x][y] = bcolor;
+//     }
+// }
