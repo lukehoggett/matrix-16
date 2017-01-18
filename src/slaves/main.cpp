@@ -4,33 +4,6 @@ unsigned char whiteBalanceValue[3] = {20, 63, 63};
 
 void setWhiteBalance() { Colorduino.SetWhiteBal(whiteBalanceValue); }
 
-void drawDots() {
-  for (unsigned char x = 0; x < ColorduinoScreenWidth; x++) {
-    for (unsigned char y = 0; y < ColorduinoScreenWidth; y++) {
-      // Colorduino.ColorFill(0,0,0);
-      // if (x < 5) {
-      //   continue;
-      // }
-      Colorduino.SetPixel(x, y, 0, 255, 255);
-
-      // Serial.print("set pixel ");
-      // Serial.print(x);
-      // Serial.print(", ");
-      // Serial.println(y);
-      // Colorduino.FlipPage();
-      // delay(100);
-    }
-  }
-  Colorduino.FlipPage();
-
-  // Colorduino.SetPixel(4, 4, 0, 128, 255);
-  // Serial.println("set pixel 4,4");
-  // delay(1000);
-  // Colorduino.SetPixel(6, 6, 128, 0, 255);
-  // Serial.println("set pixel 6,6");
-  // delay(1000);
-}
-
 void listener() {
   // Serial.print("listener() Wire available: ");
   // Serial.println(Wire.available());
@@ -56,19 +29,19 @@ void listener() {
     // Serial.println(c, HEX);
     // depeding on c read pixels in as R G or B
     // read red display data
-    if (c == 0) {
-      for (byte x = 0; x < 8; x++) {
-        for (byte y = 0; y < 8; y++) {
+    if (c == COLOR_BYTE_RED) {
+      for (byte x = 0; x < MATRIX_WIDTH; x++) {
+        for (byte y = 0; y < MATRIX_HEIGHT; y++) {
           PixelRGB *p = Colorduino.GetPixel(x, y);
           p->r = Wire.read();
         }
       }
     }
 
-    // read green display data
-    if (c == 1) {
-      for (byte x = 0; x < 8; x++) {
-        for (byte y = 0; y < 8; y++) {
+    // read green display data 
+    if (c == COLOR_BYTE_GREEN) {
+      for (byte x = 0; x < MATRIX_WIDTH; x++) {
+        for (byte y = 0; y < MATRIX_HEIGHT; y++) {
           PixelRGB *p = Colorduino.GetPixel(x, y);
           p->g = Wire.read();
         }
@@ -76,9 +49,9 @@ void listener() {
     }
 
     // read blue display data
-    if (c == 2) {
-      for (byte x = 0; x < 8; x++) {
-        for (byte y = 0; y < 8; y++) {
+    if (c == COLOR_BYTE_BLUE) {
+      for (byte x = 0; x < MATRIX_WIDTH; x++) {
+        for (byte y = 0; y < MATRIX_HEIGHT; y++) {
           PixelRGB *p = Colorduino.GetPixel(x, y);
           p->b = Wire.read();
         }
