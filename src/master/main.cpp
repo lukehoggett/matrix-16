@@ -31,6 +31,8 @@
 unsigned char plasma[SCREENSIZE_X][SCREENSIZE_Y];
 long paletteShift;
 
+ColorUtils colorUtils;
+
 void setup() {
   Wire.begin(1); // join i2c bus (address optional for master)
   // Serial.begin(115200);
@@ -40,7 +42,7 @@ void setup() {
 void loop() { generateData(); }
 
 // update display buffer using x,y,r,g,b format
-void display(uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b, uint8_t addr) {
+void display(uint8_t addr, uint8_t x, uint8_t y, uint8_t r, uint8_t g, uint8_t b) {
   uint8_t p = (y * 8) + x; // convert from x,y to pixel number in array
 
   displayByte[0][addr][p] = r;
@@ -66,94 +68,6 @@ static uint8_t sendBuffer(uint8_t addr, uint8_t col, uint8_t *disp_data) {
   Wire.write(disp_data, 64);
   Wire.write(END_OF_DATA);
   return Wire.endTransmission();
-}
-
-// plasma convert
-// Converts an HSV color to RGB color
-void HSVtoRGB(void *vRGB, void *vHSV) {
-  float r, g, b, h, s, v; // this function works with floats between 0 and 1
-  float f, p, q, t;
-  int i;
-  ColorRGB *colorRGB = (ColorRGB *)vRGB;
-  ColorHSV *colorHSV = (ColorHSV *)vHSV;
-
-  h = (float)(colorHSV->h / 256.0);
-  s = (float)(colorHSV->s / 256.0);
-  v = (float)(colorHSV->v / 256.0);
-
-  // if saturation is 0, the color is a shade of grey
-  if (s == 0.0) {
-    b = v;
-    g = b;
-    r = g;
-  }
-
-  // if saturation > 0, more complex calculations are needed
-  else {
-    h *= 6.0;            // to bring hue to a number between 0 and 6,
-                         // better
-                         // for the calculations
-    i = (int)(floor(h)); // e.g. 2.7 becomes 2 and 3.01 becomes 3 or 4.9999
-                         // becomes 4
-    f = h - i;           // the fractional part of h
-
-    p = (float)(v * (1.0 - s));
-    q = (float)(v * (1.0 - (s * f)));
-    t = (float)(v * (1.0 - (s * (1.0 - f))));
-
-    switch (i) {
-    case 0:
-      r = v;
-      g = t;
-      b = p;
-      break;
-
-    case 1:
-      r = q;
-      g = v;
-      b = p;
-      break;
-
-    case 2:
-      r = p;
-      g = v;
-      b = t;
-      break;
-
-    case 3:
-      r = p;
-      g = q;
-      b = v;
-      break;
-
-    case 4:
-      r = t;
-      g = p;
-      b = v;
-      break;
-
-    case 5:
-      r = v;
-      g = p;
-      b = q;
-      break;
-
-    default:
-      r = g = b = 0;
-      break;
-    }
-  }
-  colorRGB->r = (int)(r * 255.0);
-  colorRGB->g = (int)(g * 255.0);
-  colorRGB->b = (int)(b * 255.0);
-}
-
-unsigned int RGBtoINT(void *vRGB) {
-  ColorRGB *colorRGB = (ColorRGB *)vRGB;
-
-  return (((unsigned long int)colorRGB->r) << 16) +
-         (((unsigned long int)colorRGB->g) << 8) +
-         (unsigned long int)colorRGB->b;
 }
 
 float dist(float a, float b, float c, float d) {
@@ -200,7 +114,7 @@ void generateData() {
           yRel = y - MATRIX_Y;
         }
       }
-      display(xRel, yRel, colorRGB.r, colorRGB.g, colorRGB.b, addr);
+      display(addr, xRel, yRel, colorRGB.r, colorRGB.g, colorRGB.b);
     }
   }
   paletteShift++;
@@ -215,26 +129,10 @@ ColorRGB getValue(uint8_t x, uint8_t y, ColorRGB colorRGB) {
           sin(dist(x, y, 64.0, 64.0) / 8.0) +
           sin(dist(x, y + paletteShift / 7, 192.0, 64) / 7.0) +
           sin(dist(x, y, 192.0, 100.0) / 8.0);
-  colorHSV.h = (unsigned char)((value)*128) & 0xff;
+  colorHSV.h = (uint8_t)((value)*128) & 0xff;
   colorHSV.s = 255;
   colorHSV.v = 255;
-  HSVtoRGB(&colorRGB, &colorHSV);
+  colorUtils.HSVtoRGB(&colorRGB, &colorHSV);
   
   return colorRGB;
 }
-
-// plasma setup - start with morphing plasma, but allow going to color cycling
-// if desired.
-// void plasmaSetup() {
-//   paletteShift = 128000;
-//   unsigned char bcolor;
-// 
-//   for (unsigned char x = 0; x < SCREENSIZE_X; x++)
-//     for (unsigned char y = 0; y < SCREENSIZE_Y; y++) {
-//       // the plasma buffer is a sum of sines
-//       bcolor = (unsigned char)(128.0 + (128.0 * sin(x * 8.0 / 16.0)) + 128.0 +
-//                                (128.0 * sin(y * 8.0 / 16.0))) /
-//                2;
-//       plasma[x][y] = bcolor;
-//     }
-// }
